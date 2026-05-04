@@ -18,6 +18,9 @@ export function Historico() {
   const [dadosGrafico, setDadosGrafico] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // EXTRAI A FUNÇÃO DA STORE AQUI NO TOPO (Regra do React)
+  const removeXp = useRpgStore((state) => state.removeXp);
+
   // Estados dos Filtros
   const [filtroPeriodo, setFiltroPeriodo] = useState<"tudo" | "semana" | "mes">(
     "tudo",
@@ -108,42 +111,29 @@ export function Historico() {
   };
 
   const handleExcluir = async (id: string) => {
-    if (!window.confirm("Isso apagará o registro desta vitória. Tem certeza?"))
+    if (
+      !window.confirm("Isso apagará o registro e reduzirá seu XP. Confirmar?")
+    )
       return;
+
     try {
+      // 1. Encontra a meta para saber quanto XP subtrair
+      const metaParaDeletar = metasOriginais.find((m) => m.id === id);
+
+      // 2. Deleta no Supabase
       await metaService.deleteMeta(id);
+
+      // 3. Punição justa: Remove o XP da meta excluída
+      if (metaParaDeletar && metaParaDeletar.xp_valor) {
+        removeXp(metaParaDeletar.xp_valor);
+      }
+
+      // 4. Atualiza a lista na tela imediatamente
       setMetasOriginais((prev) => prev.filter((m) => m.id !== id));
     } catch (error) {
       console.error("Erro ao excluir:", error);
+      alert("Erro ao sincronizar com o banco de dados.");
     }
-
-    const removeXp = useRpgStore((state) => state.removeXp);
-
-    const handleExcluir = async (id: string) => {
-      if (
-        !window.confirm("Isso apagará o registro e reduzirá seu XP. Confirmar?")
-      )
-        return;
-
-      try {
-        // 1. Encontra a meta para saber quanto XP subtrair
-        const metaParaDeletar = metasOriginais.find((m) => m.id === id);
-
-        // 2. Deleta no Supabase
-        await metaService.deleteMeta(id);
-
-        // 3. Se ela estava concluída, remove o XP
-        if (metaParaDeletar && metaParaDeletar.xp_valor) {
-          removeXp(metaParaDeletar.xp_valor);
-        }
-
-        // 4. Atualiza a lista na tela imediatamente
-        setMetasOriginais((prev) => prev.filter((m) => m.id !== id));
-      } catch (error) {
-        console.error("Erro ao excluir:", error);
-        alert("Erro ao sincronizar com o banco de dados.");
-      }
-    };
   };
 
   if (loading)
@@ -199,7 +189,7 @@ export function Historico() {
           </h2>
         </div>
 
-        <div className='h-[300px] w-full'>
+        <div className='h-75 w-full'>
           {dadosGrafico.length > 0 ? (
             <ResponsiveContainer width='100%' height='100%'>
               <BarChart
@@ -230,7 +220,7 @@ export function Historico() {
                   itemStyle={{ color: "#ca8aef", fontWeight: "bold" }}
                 />
                 <Bar dataKey='xp' radius={[6, 6, 0, 0]}>
-                  {dadosGrafico.map((entry, index) => (
+                  {dadosGrafico.map((_, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={index === 0 ? "#ca8aef" : "#273b4a"}
