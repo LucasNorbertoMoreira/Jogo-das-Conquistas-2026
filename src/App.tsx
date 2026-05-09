@@ -3,15 +3,18 @@ import { supabase } from "./lib/supabase";
 import { KanbanBoard } from "./features/metas/components/KanbanBoard";
 import { HudUsuario } from "./features/hud/components/HudUsuario";
 import { Login } from "./pages/Login";
-import { LayoutDashboard, Trophy, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Trophy, Settings, LogOut, Flame } from "lucide-react";
 import { Historico } from "./pages/Historico";
+import { Missoes } from "./pages/Missoes";
 
 export default function App() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   // 1. O ESTADO DO SWITCHER (Qual tela está ativa?)
-  const [telaAtual, setTelaAtual] = useState<"kanban" | "historico">("kanban");
+  const [telaAtual, setTelaAtual] = useState<
+    "kanban" | "historico" | "missoes"
+  >("kanban");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -59,6 +62,14 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => setTelaAtual("missoes")}
+            className={`p-3 rounded-xl transition-all group relative ${telaAtual === "missoes" ? "bg-[#ca8aef] text-white shadow-[0_0_15px_rgba(202,138,239,0.5)]" : "text-[#b7b7b7] hover:bg-[#273b4a] hover:text-white"}`}
+          >
+            <Flame size={22} />
+            {/* Dica: Você pode colocar uma bolinha vermelha aqui depois se houver missões pendentes */}
+          </button>
+
+          <button
             onClick={() => setTelaAtual("historico")}
             className={`p-3 rounded-xl transition-all group relative ${telaAtual === "historico" ? "bg-[#ca8aef] text-white shadow-[0_0_15px_rgba(202,138,239,0.5)]" : "text-[#b7b7b7] hover:bg-[#273b4a] hover:text-white"}`}
           >
@@ -86,16 +97,21 @@ export default function App() {
 
         <header className='mb-8 md:mb-12'>
           <h1 className='text-3xl md:text-[3.2rem] font-bold mb-2 text-white leading-tight'>
-            {telaAtual === "kanban" ? "Minhas Metas" : "Cofre de Conquistas"}
+            {telaAtual === "kanban" && "Minhas Metas"}
+            {telaAtual === "missoes" && "Missões Diárias"}
+            {telaAtual === "historico" && "Cofre de Conquistas"}
           </h1>
           <p className='text-sm md:text-[1.6rem] text-[#a0aec0]'>
-            {telaAtual === "kanban"
-              ? "Transforme sua disciplina em XP."
-              : "Auditoria de alta performance."}
+            {telaAtual === "kanban" && "Transforme sua disciplina em XP."}
+            {telaAtual === "missoes" && "Sua ofensiva contra a estagnação."}
+            {telaAtual === "historico" && "Auditoria de alta performance."}
           </p>
         </header>
 
-        {telaAtual === "kanban" ? <KanbanBoard /> : <Historico />}
+        {/* Switcher de Telas */}
+        {telaAtual === "kanban" && <KanbanBoard />}
+        {telaAtual === "missoes" && <Missoes />}
+        {telaAtual === "historico" && <Historico />}
       </main>
     </div>
   );
