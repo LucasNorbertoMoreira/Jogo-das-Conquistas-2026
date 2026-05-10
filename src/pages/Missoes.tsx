@@ -3,6 +3,7 @@ import { habitService } from "../services/habitService";
 import { supabase } from "../lib/supabase";
 import { CheckCircle2, Circle, Flame, AlertTriangle } from "lucide-react";
 import { useRpgStore } from "../store/useRpgStore";
+import { FormCriarHabito } from "./FormCriarHabito";
 
 export function Missoes() {
   const [habitos, setHabitos] = useState<any[]>([]);
@@ -10,6 +11,7 @@ export function Missoes() {
   const [loading, setLoading] = useState(true);
   const addXp = useRpgStore((state) => state.addXp);
   const removeXp = useRpgStore((state) => state.removeXp);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const carregarDados = async () => {
     try {
@@ -119,14 +121,24 @@ export function Missoes() {
         })}
       </div>
 
+      {/* Botão para abrir o modal quando a lista estiver vazia ou no header */}
       {habitos.length === 0 && (
         <div className='text-center p-10 border-2 border-dashed border-[#273b4a] rounded-2xl'>
           <p className='text-[#a0aec0]'>Nenhum hábito mestre cadastrado.</p>
-          <button className='mt-4 text-[#ca8aef] font-bold uppercase text-sm underline'>
-            Configurar Rotina
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className='mt-4 text-[#ca8aef] font-bold uppercase text-sm underline cursor-pointer'
+          >
+            CONFIGURAR ROTINA
           </button>
         </div>
       )}
+
+      <FormCriarHabito
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={carregarDados}
+      />
     </div>
   );
 }

@@ -47,8 +47,8 @@ export const habitService = {
   async criarHabito(
     nome: string,
     userId: string,
-    xpGanho = 10,
-    xpPenalidade = 20,
+    xpGanho: number,
+    xpPenalidade: number,
   ) {
     const { data, error } = await supabase
       .from("habitos")
@@ -61,7 +61,11 @@ export const habitService = {
         },
       ])
       .select();
-    if (error) throw error;
+
+    if (error) {
+      console.error("Erro no Supabase:", error);
+      throw error;
+    }
     return data[0];
   },
 };
