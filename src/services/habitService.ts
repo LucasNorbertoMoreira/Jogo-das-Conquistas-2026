@@ -20,6 +20,15 @@ export const habitService = {
     return data;
   },
 
+  async getRegistrosPorData(dataString: string) {
+    const { data, error } = await supabase
+      .from("registros_habitos")
+      .select("*")
+      .eq("data", dataString);
+    if (error) throw error;
+    return data;
+  },
+
   // FUNÇÃO REESCRITA: CIRÚRGICA E INFALÍVEL
   async toggleHabito(habitoId: string, concluido: boolean, userId: string) {
     const hoje = new Date().toISOString().split("T")[0];

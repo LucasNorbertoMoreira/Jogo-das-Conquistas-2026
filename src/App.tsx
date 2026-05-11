@@ -6,6 +6,7 @@ import { Login } from "./pages/Login";
 import { LayoutDashboard, Trophy, Settings, LogOut, Flame } from "lucide-react";
 import { Historico } from "./pages/Historico";
 import { Missoes } from "./pages/Missoes";
+import { AuditorDiario } from "./features/hud/components/AuditorDiario";
 
 export default function App() {
   const [session, setSession] = useState<any>(null);
@@ -93,8 +94,8 @@ export default function App() {
 
       {/* Área de Conteúdo: Padronizando o padding para não vazar a tela */}
       <main className='flex-grow relative p-4 md:p-10 overflow-y-auto overflow-x-hidden'>
+        <AuditorDiario /> {/* <-- O PORTEIRO ESTÁ AQUI */}
         <HudUsuario />
-
         <header className='mb-8 md:mb-12'>
           <h1 className='text-3xl md:text-[3.2rem] font-bold mb-2 text-white leading-tight'>
             {telaAtual === "kanban" && "Minhas Metas"}
@@ -107,7 +108,6 @@ export default function App() {
             {telaAtual === "historico" && "Auditoria de alta performance."}
           </p>
         </header>
-
         {/* Switcher de Telas */}
         {telaAtual === "kanban" && <KanbanBoard />}
         {telaAtual === "missoes" && <Missoes />}
