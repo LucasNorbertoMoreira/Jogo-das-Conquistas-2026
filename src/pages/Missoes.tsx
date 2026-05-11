@@ -69,31 +69,46 @@ export function Missoes() {
     titulo: string;
     tipo: string;
     cor: string;
-  }) => (
-    <div className='flex flex-col gap-4 flex-1'>
-      <h3
-        className='text-sm font-black uppercase tracking-widest mb-2 flex items-center gap-2'
-        style={{ color: cor }}
-      >
-        <div
-          className='w-2 h-2 rounded-full'
-          style={{ backgroundColor: cor }}
-        ></div>
-        {titulo}
-      </h3>
-      <div className='flex flex-col gap-3'>
-        {habitos
-          .filter((h) => h.tipo === tipo)
-          .map((h) => {
-            const registro = registros.find((r) => r.habito_id === h.id);
-            const concluido = registro?.concluido;
+  }) => {
+    // 1. Filtra os hábitos pela coluna correta (baixa, media, alta)
+    let habitosDaColuna = habitos.filter((h) => h.tipo === tipo);
+
+    // 2. O Algoritmo de Prioridade: Joga os concluídos para o fundo
+    habitosDaColuna.sort((a, b) => {
+      const aConcluido =
+        registros.find((r) => r.habito_id === a.id)?.concluido || false;
+      const bConcluido =
+        registros.find((r) => r.habito_id === b.id)?.concluido || false;
+
+      if (aConcluido && !bConcluido) return 1; // A vai pro fim
+      if (!aConcluido && bConcluido) return -1; // B vai pro fim
+      return 0; // Mantém a ordem original se ambos estiverem no mesmo estado
+    });
+
+    return (
+      <div className='flex flex-col gap-4 flex-1'>
+        <h3
+          className='text-sm font-black uppercase tracking-widest mb-2 flex items-center gap-2'
+          style={{ color: cor }}
+        >
+          <div
+            className='w-2 h-2 rounded-full'
+            style={{ backgroundColor: cor }}
+          ></div>
+          {titulo}
+        </h3>
+        <div className='flex flex-col gap-3'>
+          {habitosDaColuna.map((h) => {
+            const concluido = registros.find(
+              (r) => r.habito_id === h.id,
+            )?.concluido;
 
             return (
               <div
                 key={h.id}
-                className={`group flex items-center justify-between p-4 rounded-xl border transition-all duration-200 ${
+                className={`group flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${
                   concluido
-                    ? "bg-[#48a64b]/10 border-[#48a64b]/30 shadow-inner"
+                    ? "bg-[#48a64b]/10 border-[#48a64b]/30 shadow-inner opacity-60 hover:opacity-100"
                     : "bg-[#121a27] border-[#273b4a] hover:border-[#ca8aef]/40 hover:bg-[#162131]"
                 }`}
               >
@@ -117,7 +132,6 @@ export function Missoes() {
                     >
                       {h.nome}
                     </span>
-                    {/* Feedback de XP/Dano ao lado do nome */}
                     <div className='flex gap-2 mt-1'>
                       <span className='text-[10px] font-black text-[#48a64b]/70'>
                         +{h.xp_ganho} XP
@@ -139,9 +153,10 @@ export function Missoes() {
               </div>
             );
           })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (loading)
     return (
