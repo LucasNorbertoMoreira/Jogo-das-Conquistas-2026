@@ -12,9 +12,9 @@ interface Props {
 type NivelHabito = "baixa" | "media" | "alta";
 
 const CONFIG_NIVEIS = {
-  baixa: { xp: 10, dano: 20, cor: "#48A64B", label: "Simples" },
-  media: { xp: 25, dano: 50, cor: "#E2B34B", label: "Padrão" },
-  alta: { xp: 50, dano: 100, cor: "#ca8aef", label: "Mestre" },
+  baixa: { xp: 10, dano: 20, cor: "#48A64B", label: "Baixa" },
+  media: { xp: 25, dano: 50, cor: "#E2B34B", label: "Média" },
+  alta: { xp: 50, dano: 100, cor: "#ca8aef", label: "Alta" },
 };
 
 export function FormCriarHabito({ isOpen, onClose, onSuccess }: Props) {
@@ -34,7 +34,14 @@ export function FormCriarHabito({ isOpen, onClose, onSuccess }: Props) {
       if (!user) return;
 
       const config = CONFIG_NIVEIS[nivel];
-      await habitService.criarHabito(nome, user.id, config.xp, config.dano);
+
+      await habitService.criarHabito(
+        nome,
+        user.id,
+        nivel,
+        config.xp,
+        config.dano,
+      );
 
       setNome("");
       onSuccess();

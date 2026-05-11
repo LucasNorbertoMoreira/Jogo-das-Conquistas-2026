@@ -1,7 +1,6 @@
 import { supabase } from "../lib/supabase";
 
 export const habitService = {
-  // Busca as definições dos hábitos
   async getHabitos() {
     const { data, error } = await supabase
       .from("habitos")
@@ -11,7 +10,6 @@ export const habitService = {
     return data;
   },
 
-  // Busca o que foi feito HOJE
   async getRegistrosHoje() {
     const hoje = new Date().toISOString().split("T")[0];
     const { data, error } = await supabase
@@ -22,31 +20,51 @@ export const habitService = {
     return data;
   },
 
-  // Marca ou desmarca um hábito
+  // FUNÇÃO REESCRITA: CIRÚRGICA E INFALÍVEL
   async toggleHabito(habitoId: string, concluido: boolean, userId: string) {
     const hoje = new Date().toISOString().split("T")[0];
 
-    const { data, error } = await supabase
+    // 1. Verifica se o usuário já clicou neste hábito hoje
+    const { data: existente, error: erroBusca } = await supabase
       .from("registros_habitos")
-      .upsert(
-        {
-          habito_id: habitoId,
-          user_id: userId,
-          data: hoje,
-          concluido: concluido,
-        },
-        { onConflict: "habito_id, data" },
-      )
-      .select();
+      .select("id")
+      .eq("habito_id", habitoId)
+      .eq("data", hoje)
+      .maybeSingle(); // Retorna 1 registro ou nulo, sem dar erro
 
-    if (error) throw error;
-    return data;
+    if (erroBusca) throw erroBusca;
+
+    if (existente) {
+      // 2. Se já existe, apenas atualiza o status de concluído
+      const { data, error } = await supabase
+        .from("registros_habitos")
+        .update({ concluido })
+        .eq("id", existente.id)
+        .select();
+      if (error) throw error;
+      return data;
+    } else {
+      // 3. Se não existe, insere o novo registro do dia
+      const { data, error } = await supabase
+        .from("registros_habitos")
+        .insert([
+          {
+            habito_id: habitoId,
+            user_id: userId,
+            data: hoje,
+            concluido,
+          },
+        ])
+        .select();
+      if (error) throw error;
+      return data;
+    }
   },
 
-  // CRIA UM NOVO HÁBITO
   async criarHabito(
     nome: string,
     userId: string,
+    tipo: string,
     xpGanho: number,
     xpPenalidade: number,
   ) {
@@ -56,16 +74,19 @@ export const habitService = {
         {
           nome,
           user_id: userId,
+          tipo,
           xp_ganho: xpGanho,
           xp_penalidade: xpPenalidade,
         },
       ])
       .select();
 
-    if (error) {
-      console.error("Erro no Supabase:", error);
-      throw error;
-    }
+    if (error) throw error;
     return data[0];
+  },
+
+  async deleteHabito(id: string) {
+    const { error } = await supabase.from("habitos").delete().eq("id", id);
+    if (error) throw error;
   },
 };
