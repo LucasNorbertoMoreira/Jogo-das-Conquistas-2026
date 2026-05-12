@@ -237,6 +237,8 @@ export function Historico() {
         </div>
       </div>
 
+      
+
       {/* COFRE DE CONQUISTAS (Lista) */}
       <div className='flex flex-col gap-4'>
         <h2 className='text-xl font-bold text-[#b7b7b7] sticky top-0 bg-[#050e22] py-2 z-10'>
@@ -286,6 +288,11 @@ export function Historico() {
             ))}
           </div>
         )}
+
+        <section>
+        <h2 className="text-xl font-black text-white uppercase mb-4 text-[#ca8aef]">Auditoria de Disciplina</h2>
+        <RelatoriosPassados />
+      </section>
       </div>
     </div>
   );
