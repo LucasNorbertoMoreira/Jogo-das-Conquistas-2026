@@ -1,6 +1,6 @@
 import { supabase } from "../../../lib/supabase";
 
-const PONTOS_BASE = { metinha: 10, meta: 50, metona: 250 };
+const PONTOS_BASE = { metinha: 100, meta: 500, metona: 5000 };
 const MULTIPLICADORES = { baixa: 0.5, media: 1.0, alta: 2.0 };
 
 export const metaService = {

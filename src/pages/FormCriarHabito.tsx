@@ -12,9 +12,9 @@ interface Props {
 type NivelHabito = "baixa" | "media" | "alta";
 
 const CONFIG_NIVEIS = {
-  baixa: { xp: 10, dano: 20, cor: "#48A64B", label: "Baixa" },
-  media: { xp: 25, dano: 50, cor: "#E2B34B", label: "Média" },
-  alta: { xp: 50, dano: 100, cor: "#ca8aef", label: "Alta" },
+  baixa: { xp: 5, dano: 10, cor: "#48A64B", label: "Baixa" },
+  media: { xp: 15, dano: 50, cor: "#E2B34B", label: "Média" },
+  alta: { xp: 30, dano: 100, cor: "#ca8aef", label: "Alta" },
 };
 
 export function FormCriarHabito({ isOpen, onClose, onSuccess }: Props) {

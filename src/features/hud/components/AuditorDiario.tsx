@@ -13,6 +13,7 @@ export function AuditorDiario() {
   }, []);
 
   const auditarOntem = async () => {
+    console.log("Iniciando auditoria..."); // Se isso não aparecer no console, o componente não carregou
     // 1. Calcula a data de ontem e hoje
     const hoje = new Date();
     const dataHoje = hoje.toISOString().split("T")[0];

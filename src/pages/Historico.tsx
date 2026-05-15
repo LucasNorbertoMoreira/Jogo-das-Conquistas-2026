@@ -10,7 +10,8 @@ import {
   Cell,
 } from "recharts";
 import { Trophy, Zap, Trash2, Filter } from "lucide-react";
-import { useRpgStore } from "../store/useRpgStore"; // Importe a store
+import { useRpgStore } from "../store/useRpgStore";
+import { RelatoriosPassados } from "./RelatoriosPassados";
 
 export function Historico() {
   const [metasOriginais, setMetasOriginais] = useState<any[]>([]);
@@ -237,8 +238,6 @@ export function Historico() {
         </div>
       </div>
 
-      
-
       {/* COFRE DE CONQUISTAS (Lista) */}
       <div className='flex flex-col gap-4'>
         <h2 className='text-xl font-bold text-[#b7b7b7] sticky top-0 bg-[#050e22] py-2 z-10'>
@@ -290,9 +289,11 @@ export function Historico() {
         )}
 
         <section>
-        <h2 className="text-xl font-black text-white uppercase mb-4 text-[#ca8aef]">Auditoria de Disciplina</h2>
-        <RelatoriosPassados />
-      </section>
+          <h2 className='text-xl font-black text-white uppercase mb-4 text-[#ca8aef]'>
+            Auditoria de Disciplina
+          </h2>
+          <RelatoriosPassados />
+        </section>
       </div>
     </div>
   );
