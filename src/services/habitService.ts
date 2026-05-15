@@ -76,6 +76,7 @@ export const habitService = {
     tipo: string,
     xpGanho: number,
     xpPenalidade: number,
+    diasSemana: number[],
   ) {
     const { data, error } = await supabase
       .from("habitos")
@@ -86,6 +87,7 @@ export const habitService = {
           tipo,
           xp_ganho: xpGanho,
           xp_penalidade: xpPenalidade,
+          dias_semana: diasSemana, // Nova linha conectando os dados
         },
       ])
       .select();

@@ -70,8 +70,11 @@ export function Missoes() {
     tipo: string;
     cor: string;
   }) => {
+    const hoje = new Date().getDay();
     // 1. Filtra os hábitos pela coluna correta (baixa, media, alta)
-    let habitosDaColuna = habitos.filter((h) => h.tipo === tipo);
+    let habitosDaColuna = habitos.filter(
+      (h) => h.tipo === tipo && h.dias_semana && h.dias_semana.includes(hoje),
+    );
 
     // 2. O Algoritmo de Prioridade: Joga os concluídos para o fundo
     habitosDaColuna.sort((a, b) => {

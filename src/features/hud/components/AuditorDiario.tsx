@@ -17,8 +17,9 @@ export function AuditorDiario() {
     // 1. Calcula a data de ontem e hoje
     const hoje = new Date();
     const dataHoje = hoje.toISOString().split("T")[0];
-
     const ontem = new Date(hoje);
+    const diaDeOntem = ontem.getDay();
+
     ontem.setDate(ontem.getDate() - 1);
     const dataOntem = ontem.toISOString().split("T")[0];
 
@@ -49,8 +50,12 @@ export function AuditorDiario() {
       let danoAplicado = 0;
 
       habitos.forEach((habito) => {
-        // Ignora hábitos criados hoje (não seria justo cobrar por ontem)
+        // 1. Ignora se o hábito não existia ontem
         if (new Date(habito.created_at) > ontem) return;
+
+        // 2. NOVA REGRA: Ignora se o hábito não estava programado para ontem
+        if (habito.dias_semana && !habito.dias_semana.includes(diaDeOntem))
+          return;
 
         const registro = registrosOntem.find(
           (r: any) => r.habito_id === habito.id,
