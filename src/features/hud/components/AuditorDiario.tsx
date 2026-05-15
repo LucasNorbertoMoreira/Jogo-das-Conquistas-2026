@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { habitService } from "../../../services/habitService";
 import { useRpgStore } from "../../../store/useRpgStore";
-import { AlertOctagon, CheckCircle2, XCircle, ShieldAlert } from "lucide-react";
+import { XCircle, ShieldAlert } from "lucide-react";
 
 export function AuditorDiario() {
   const [relatorio, setRelatorio] = useState<any>(null);
