@@ -1,32 +1,68 @@
 import { useState } from "react";
-import { habitService } from "../services/habitService";
+import { X } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import { X, Flame, Zap, AlertTriangle } from "lucide-react";
-
-interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-}
+import { habitService } from "../services/habitService";
 
 type NivelHabito = "baixa" | "media" | "alta";
 
 const CONFIG_NIVEIS = {
-  baixa: { xp: 5, dano: 10, cor: "#48A64B", label: "Baixa" },
-  media: { xp: 15, dano: 50, cor: "#E2B34B", label: "Média" },
-  alta: { xp: 30, dano: 100, cor: "#ca8aef", label: "Alta" },
+  baixa: { xp: 5, dano: 15, cor: "#48A64B", label: "Prioridade Baixa" },
+  media: { xp: 15, dano: 45, cor: "#E2B34B", label: "Prioridade Média" },
+  alta: { xp: 30, dano: 100, cor: "#ca8aef", label: "Prioridade Alta" },
 };
 
-export function FormCriarHabito({ isOpen, onClose, onSuccess }: Props) {
+const DIAS_SEMANA = [
+  { id: 0, label: "D" },
+  { id: 1, label: "S" },
+  { id: 2, label: "T" },
+  { id: 3, label: "Q" },
+  { id: 4, label: "Q" },
+  { id: 5, label: "S" },
+  { id: 6, label: "S" },
+];
+
+export function FormCriarHabito({
+  isOpen,
+  onClose,
+  onSuccess,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
   const [nome, setNome] = useState("");
   const [nivel, setNivel] = useState<NivelHabito>("baixa");
-  const [enviando, setEnviando] = useState(false);
+  // O padrão é começar com todos os dias selecionados (Hábito Diário)
+  const [diasSelecionados, setDiasSelecionados] = useState<number[]>([
+    0, 1, 2, 3, 4, 5, 6,
+  ]);
+  const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
 
+  const toggleDia = (id: number) => {
+    setDiasSelecionados((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((d) => d !== id); // Remove o dia
+      } else {
+        return [...prev, id].sort(); // Adiciona e mantém a ordem
+      }
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setEnviando(true);
+    if (!nome.trim()) {
+      alert("A missão precisa de um nome.");
+      return;
+    }
+    if (diasSelecionados.length === 0) {
+      alert("Selecione pelo menos um dia para a execução da missão.");
+      return;
+    }
+
+    setLoading(true);
+
     try {
       const {
         data: { user },
@@ -34,112 +70,152 @@ export function FormCriarHabito({ isOpen, onClose, onSuccess }: Props) {
       if (!user) return;
 
       const config = CONFIG_NIVEIS[nivel];
-
+      // A quinta entrada agora é a lista de dias
       await habitService.criarHabito(
         nome,
         user.id,
         nivel,
         config.xp,
         config.dano,
+        diasSelecionados,
       );
 
+      // Resetar o formulário
       setNome("");
+      setNivel("baixa");
+      setDiasSelecionados([0, 1, 2, 3, 4, 5, 6]);
+
       onSuccess();
       onClose();
     } catch (error) {
-      console.error("Erro ao criar hábito:", error);
+      console.error(error);
     } finally {
-      setEnviando(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className='fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4'>
-      <div className='bg-[#121a27] border border-[#273b4a] w-full max-w-md rounded-2xl overflow-hidden shadow-2xl'>
-        <div className='p-6 border-b border-[#273b4a] flex justify-between items-center'>
-          <div className='flex items-center gap-2'>
-            <Flame
-              style={{ color: CONFIG_NIVEIS[nivel].cor }}
-              size={20}
-              className='transition-colors duration-300'
-            />
-            <h2 className='text-xl font-bold text-white uppercase tracking-tight'>
-              Novo Hábito {CONFIG_NIVEIS[nivel].label}
-            </h2>
-          </div>
-          <button onClick={onClose} className='text-[#a0aec0] hover:text-white'>
-            <X size={24} />
-          </button>
-        </div>
+    <div className='fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+      <div className='bg-[#050e22] border border-[#273b4a] w-full max-w-md rounded-2xl shadow-2xl relative'>
+        <button
+          onClick={onClose}
+          className='absolute top-4 right-4 text-[#a0aec0] hover:text-white transition-colors'
+        >
+          <X size={24} />
+        </button>
 
         <form onSubmit={handleSubmit} className='p-6 flex flex-col gap-6'>
           <div>
-            <label className='block text-[#b7b7b7] text-xs font-black uppercase mb-2'>
-              O que você vai dominar?
+            <h2 className='text-xl font-black text-white uppercase tracking-tighter mb-1'>
+              Nova Missão
+            </h2>
+            <p className='text-[#a0aec0] text-xs font-bold uppercase tracking-widest'>
+              Configure os parâmetros operacionais
+            </p>
+          </div>
+
+          <div className='flex flex-col gap-2'>
+            <label className='text-[10px] text-[#a0aec0] font-black uppercase tracking-widest'>
+              Nome da Missão
             </label>
             <input
               type='text'
-              placeholder='Ex: Treino de Planche ou Meditação'
-              className='w-full bg-[#050e22] border border-[#273b4a] rounded-xl p-4 text-white focus:border-[#ca8aef] outline-none transition-all'
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              required
+              placeholder='Ex: Treino de Front Lever'
+              className='bg-[#121a27] border border-[#273b4a] text-white p-3 rounded-xl outline-none focus:border-[#ca8aef] transition-colors'
+              autoFocus
             />
           </div>
 
-          <div>
-            <label className='block text-[#b7b7b7] text-xs font-black uppercase mb-3 text-center'>
-              Nível de Importância
+          <div className='flex flex-col gap-2'>
+            <label className='text-[10px] text-[#a0aec0] font-black uppercase tracking-widest'>
+              Dias de Execução
             </label>
-            <div className='flex gap-2 p-1 bg-[#050e22] rounded-xl border border-[#273b4a]'>
-              {(Object.keys(CONFIG_NIVEIS) as NivelHabito[]).map((n) => (
-                <button
-                  key={n}
-                  type='button'
-                  onClick={() => setNivel(n)}
-                  className={`flex-1 py-3 rounded-lg text-xs font-black uppercase transition-all ${
-                    nivel === n
-                      ? "bg-[#273b4a] text-white shadow-lg"
-                      : "text-[#5a6b7a] hover:text-[#a0aec0]"
-                  }`}
-                  style={
-                    nivel === n
-                      ? { borderBottom: `3px solid ${CONFIG_NIVEIS[n].cor}` }
-                      : {}
-                  }
-                >
-                  {n}
-                </button>
-              ))}
+            <div className='flex justify-between gap-1'>
+              {DIAS_SEMANA.map((dia) => {
+                const ativo = diasSelecionados.includes(dia.id);
+                return (
+                  <button
+                    key={dia.id}
+                    type='button'
+                    onClick={() => toggleDia(dia.id)}
+                    className={`flex-1 py-2 rounded-lg text-sm font-black transition-all ${
+                      ativo
+                        ? "bg-[#ca8aef] text-white shadow-[0_0_10px_rgba(202,138,239,0.3)]"
+                        : "bg-[#121a27] text-[#5a6b7a] border border-[#273b4a] hover:border-[#ca8aef]/50"
+                    }`}
+                  >
+                    {dia.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Preview de Pontuação */}
-          <div className='grid grid-cols-2 gap-4 bg-[#050e22]/50 p-4 rounded-xl border border-[#273b4a]/50'>
-            <div className='flex flex-col items-center border-r border-[#273b4a]'>
-              <span className='text-[#48a64b] text-[10px] font-black uppercase flex items-center gap-1'>
-                <Zap size={10} /> Recompensa
-              </span>
-              <span className='text-white font-bold text-xl'>
-                +{CONFIG_NIVEIS[nivel].xp} XP
-              </span>
-            </div>
-            <div className='flex flex-col items-center'>
-              <span className='text-red-500 text-[10px] font-black uppercase flex items-center gap-1'>
-                <AlertTriangle size={10} /> Penalidade
-              </span>
-              <span className='text-white font-bold text-xl'>
-                -{CONFIG_NIVEIS[nivel].dano} XP
-              </span>
+          <div className='flex flex-col gap-2'>
+            <label className='text-[10px] text-[#a0aec0] font-black uppercase tracking-widest'>
+              Classe de Prioridade
+            </label>
+            <div className='grid grid-cols-1 gap-2'>
+              {(
+                Object.entries(CONFIG_NIVEIS) as [
+                  NivelHabito,
+                  (typeof CONFIG_NIVEIS)[NivelHabito],
+                ][]
+              ).map(([chave, config]) => (
+                <label
+                  key={chave}
+                  className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                    nivel === chave
+                      ? `bg-[${config.cor}]/10 border-[${config.cor}]`
+                      : "bg-[#121a27] border-[#273b4a] hover:bg-[#162131]"
+                  }`}
+                  style={
+                    nivel === chave
+                      ? {
+                          borderColor: config.cor,
+                          backgroundColor: `${config.cor}15`,
+                        }
+                      : {}
+                  }
+                >
+                  <div className='flex items-center gap-3'>
+                    <input
+                      type='radio'
+                      name='nivel'
+                      value={chave}
+                      checked={nivel === chave}
+                      onChange={() => setNivel(chave)}
+                      className='hidden'
+                    />
+                    <div
+                      className='w-3 h-3 rounded-full'
+                      style={{ backgroundColor: config.cor }}
+                    ></div>
+                    <span className='text-white font-bold text-sm'>
+                      {config.label}
+                    </span>
+                  </div>
+                  <div className='flex gap-2'>
+                    <span className='text-[10px] font-black text-[#48a64b]'>
+                      +{config.xp} XP
+                    </span>
+                    <span className='text-[10px] font-black text-red-500'>
+                      -{config.dano} HP
+                    </span>
+                  </div>
+                </label>
+              ))}
             </div>
           </div>
 
           <button
             type='submit'
-            disabled={enviando}
-            className='w-full bg-gradient-to-r from-[#ca8aef] to-[#a564d3] text-white font-black py-4 rounded-xl uppercase tracking-widest hover:shadow-[0_0_20px_rgba(202,138,239,0.4)] transition-all disabled:opacity-50 mt-2'
+            disabled={loading}
+            className='w-full bg-white text-black font-black py-4 rounded-xl uppercase tracking-widest mt-2 hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-50'
           >
-            {enviando ? "Sincronizando..." : "Fixar na Rotina"}
+            {loading ? "Registrando..." : "Cadastrar Missão"}
           </button>
         </form>
       </div>
