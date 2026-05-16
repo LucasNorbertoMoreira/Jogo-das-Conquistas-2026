@@ -50,10 +50,16 @@ export function AuditorDiario() {
       let danoAplicado = 0;
 
       habitos.forEach((habito) => {
-        // 1. Ignora se o hábito não existia ontem
-        if (new Date(habito.created_at) > ontem) return;
+        // 1. Extrai apenas o dia (YYYY-MM-DD) da criação do hábito, ignorando as horas
+        const dataCriacaoHabito = new Date(habito.created_at)
+          .toISOString()
+          .split("T")[0];
 
-        // 2. NOVA REGRA: Ignora se o hábito não estava programado para ontem
+        // 2. CORREÇÃO: Se a data de criação for MAIOR que a string de ontem, significa que foi criado hoje.
+        // Se foi criado ontem (igual a dataOntem) ou antes, ele DEVE ser cobrado.
+        if (dataCriacaoHabito > dataOntem) return;
+
+        // 3. Regra dos dias da semana (continua igual)
         if (habito.dias_semana && !habito.dias_semana.includes(diaDeOntem))
           return;
 
@@ -69,7 +75,6 @@ export function AuditorDiario() {
           danoAplicado += habito.xp_penalidade;
         }
       });
-
       // Se não teve falhas, apenas salva e segue. Sem punição.
       if (falhos.length === 0) {
         localStorage.setItem("@rpg_last_audit", dataHoje);
