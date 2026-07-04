@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { TrendingUp, TrendingDown, DollarSign, Calendar } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Trash2,
+  X,
+} from "lucide-react";
 
 interface Transacao {
   id: string;
@@ -12,13 +21,20 @@ interface Transacao {
 }
 
 export function FluxoDeCaixa() {
-  // Configura o mês atual como padrão no formato YYYY-MM
   const dataAtual = new Date();
   const mesAtualString = `${dataAtual.getFullYear()}-${String(dataAtual.getMonth() + 1).padStart(2, "0")}`;
 
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [loading, setLoading] = useState(true);
   const [mesSelecionado, setMesSelecionado] = useState(mesAtualString);
+
+  // Estados do Modal de Edição
+  const [transacaoEmEdicao, setTransacaoEmEdicao] = useState<Transacao | null>(
+    null,
+  );
+  const [editDescricao, setEditDescricao] = useState("");
+  const [editValor, setEditValor] = useState("");
+  const [editData, setEditData] = useState("");
 
   const carregarDados = async () => {
     setLoading(true);
@@ -28,16 +44,12 @@ export function FluxoDeCaixa() {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Quebra a string "YYYY-MM" para calcular os limites do mês
       const [ano, mes] = mesSelecionado.split("-");
-
-      // Primeiro milissegundo do mês selecionado
       const dataInicio = new Date(
         Number(ano),
         Number(mes) - 1,
         1,
       ).toISOString();
-      // Último milissegundo do mês selecionado (dia 0 do próximo mês = último dia do mês atual)
       const dataFim = new Date(
         Number(ano),
         Number(mes),
@@ -48,7 +60,6 @@ export function FluxoDeCaixa() {
         999,
       ).toISOString();
 
-      // Busca na tabela filtrando exatamente pelo intervalo de tempo do mês escolhido
       const { data, error } = await supabase
         .from("transacoes_financeiras")
         .select("*")
@@ -66,14 +77,86 @@ export function FluxoDeCaixa() {
     }
   };
 
-  // O useEffect agora observa o mesSelecionado. Se você trocar o mês no menu, ele recarrega sozinho.
   useEffect(() => {
     carregarDados();
   }, [mesSelecionado]);
 
+  // Função Tática de Navegação de Meses
+  const alterarMes = (direcao: "prev" | "next") => {
+    const [ano, mes] = mesSelecionado.split("-");
+    const data = new Date(Number(ano), Number(mes) - 1, 1);
+    if (direcao === "prev") data.setMonth(data.getMonth() - 1);
+    if (direcao === "next") data.setMonth(data.getMonth() + 1);
+    setMesSelecionado(
+      `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`,
+    );
+  };
+
+  // Formatar nome do mês para o cabeçalho
+  const obterNomeMesSelecionado = () => {
+    const [ano, mes] = mesSelecionado.split("-");
+    const data = new Date(Number(ano), Number(mes) - 1, 1);
+    return data
+      .toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+      .toUpperCase();
+  };
+
+  // Funções de CRUD
+  const deletarTransacao = async (id: string) => {
+    if (
+      !window.confirm(
+        "Você tem certeza que deseja deletar este registro? Isso não pode ser desfeito.",
+      )
+    )
+      return;
+
+    try {
+      const { error } = await supabase
+        .from("transacoes_financeiras")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      carregarDados();
+    } catch (error) {
+      console.error("Erro ao deletar:", error);
+      alert("Erro ao deletar transação.");
+    }
+  };
+
+  const abrirModalEdicao = (t: Transacao) => {
+    setTransacaoEmEdicao(t);
+    setEditDescricao(t.descricao);
+    setEditValor(t.valor.toString());
+    // Garante formato YYYY-MM-DD para o input type="date"
+    const dataFormatada = t.date ? t.date : t.created_at.split("T")[0];
+    setEditData(dataFormatada);
+  };
+
+  const salvarEdicao = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!transacaoEmEdicao) return;
+
+    try {
+      const { error } = await supabase
+        .from("transacoes_financeiras")
+        .update({
+          descricao: editDescricao,
+          valor: parseFloat(editValor),
+          date: editData,
+        })
+        .eq("id", transacaoEmEdicao.id);
+
+      if (error) throw error;
+      setTransacaoEmEdicao(null);
+      carregarDados();
+    } catch (error) {
+      console.error("Erro ao atualizar:", error);
+      alert("Erro ao salvar alterações.");
+    }
+  };
+
   const entradas = transacoes.filter((t) => t.tipo === "entrada");
   const saidas = transacoes.filter((t) => t.tipo === "saida");
-
   const totalEntradas = entradas.reduce(
     (acc, curr) => acc + Number(curr.valor),
     0,
@@ -82,23 +165,31 @@ export function FluxoDeCaixa() {
   const saldoAtual = totalEntradas - totalSaidas;
 
   return (
-    <div className='flex flex-col gap-6 max-w-4xl mx-auto pb-20 mt-8'>
-      {/* CABEÇALHO COM O MENU DE MÊS */}
-      <div className='flex justify-between items-end border-b border-[#273b4a] pb-4'>
+    <div className='flex flex-col gap-6 max-w-4xl mx-auto pb-20 mt-8 relative'>
+      {/* CABEÇALHO */}
+      <div className='flex flex-col md:flex-row justify-between items-start md:items-end border-b border-[#273b4a] pb-4 gap-4'>
         <div>
-          <h2 className='text-2xl font-black text-white uppercase tracking-tighter'>
+          <h2 className='text-2xl font-black text-white uppercase tracking-tighter mb-2'>
             Fluxo de Caixa
           </h2>
 
-          {/* Seletor de Data Interativo */}
-          <div className='flex items-center gap-2 mt-2 bg-[#121a27] border border-[#273b4a] rounded-lg px-3 py-1.5 w-max hover:border-[#ca8aef] transition-colors'>
-            <Calendar size={14} className='text-[#ca8aef]' />
-            <input
-              type='month'
-              value={mesSelecionado}
-              onChange={(e) => setMesSelecionado(e.target.value)}
-              className='bg-transparent text-[#a0aec0] text-xs font-bold uppercase tracking-widest outline-none cursor-pointer focus:text-white transition-colors'
-            />
+          {/* NAVEGADOR DE MESES TÁTICO */}
+          <div className='flex items-center gap-4 bg-[#121a27] border border-[#273b4a] rounded-lg p-1 w-max'>
+            <button
+              onClick={() => alterarMes("prev")}
+              className='p-1.5 text-[#5a6b7a] hover:text-[#ca8aef] hover:bg-[#273b4a] rounded-md transition-all'
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <span className='text-[#a0aec0] text-xs font-black uppercase tracking-widest min-w-[120px] text-center'>
+              {obterNomeMesSelecionado()}
+            </span>
+            <button
+              onClick={() => alterarMes("next")}
+              className='p-1.5 text-[#5a6b7a] hover:text-[#ca8aef] hover:bg-[#273b4a] rounded-md transition-all'
+            >
+              <ChevronRight size={18} />
+            </button>
           </div>
         </div>
 
@@ -110,7 +201,7 @@ export function FluxoDeCaixa() {
         </button>
       </div>
 
-      {/* DASHBOARD DE MÉTRICAS */}
+      {/* DASHBOARD DE MÉTRICAS (Mantido igual) */}
       <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
         <div className='bg-[#050e22] border border-[#273b4a] p-5 rounded-2xl shadow-xl flex flex-col justify-center items-center'>
           <span className='text-[10px] text-[#48a64b] font-black uppercase tracking-widest flex items-center gap-1 mb-2'>
@@ -144,7 +235,7 @@ export function FluxoDeCaixa() {
         </div>
       </div>
 
-      {/* LISTAGEM DE TRANSAÇÕES */}
+      {/* COMPONENTE DE RENDERIZAÇÃO DE LISTA */}
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mt-4'>
         {/* COLUNA ENTRADAS */}
         <div className='flex flex-col gap-3'>
@@ -157,20 +248,19 @@ export function FluxoDeCaixa() {
             </p>
           ) : entradas.length === 0 ? (
             <p className='text-[#5a6b7a] text-xs font-bold uppercase tracking-widest p-4 text-center border border-dashed border-[#273b4a] rounded-xl'>
-              Sem entradas neste mês
+              Sem entradas
             </p>
           ) : (
             entradas.map((t) => (
               <div
                 key={t.id}
-                className='bg-[#050e22] border border-[#48a64b]/30 p-3 rounded-xl flex justify-between items-center shadow-sm hover:border-[#48a64b] transition-colors'
+                className='group bg-[#050e22] border border-[#48a64b]/30 p-3 rounded-xl flex justify-between items-center shadow-sm hover:border-[#48a64b] transition-colors'
               >
                 <div className='flex flex-col'>
                   <span className='text-white text-sm font-bold'>
                     {t.descricao}
                   </span>
                   <span className='text-[#5a6b7a] text-[10px] uppercase font-black'>
-                    {/* Se a coluna date existir no banco, usa ela, senão pega do created_at */}
                     {t.date
                       ? new Date(t.date).toLocaleDateString("pt-BR", {
                           timeZone: "UTC",
@@ -178,9 +268,25 @@ export function FluxoDeCaixa() {
                       : new Date(t.created_at).toLocaleDateString("pt-BR")}
                   </span>
                 </div>
-                <span className='text-[#48a64b] font-black text-sm bg-[#48a64b]/10 px-2 py-1 rounded-md'>
-                  + R$ {Number(t.valor).toFixed(2)}
-                </span>
+                <div className='flex items-center gap-3'>
+                  <span className='text-[#48a64b] font-black text-sm bg-[#48a64b]/10 px-2 py-1 rounded-md'>
+                    + R$ {Number(t.valor).toFixed(2)}
+                  </span>
+                  <div className='flex md:opacity-0 md:group-hover:opacity-100 transition-opacity gap-1'>
+                    <button
+                      onClick={() => abrirModalEdicao(t)}
+                      className='p-1.5 text-[#5a6b7a] hover:text-[#ca8aef] hover:bg-[#121a27] rounded'
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => deletarTransacao(t.id)}
+                      className='p-1.5 text-[#5a6b7a] hover:text-red-500 hover:bg-[#121a27] rounded'
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
               </div>
             ))
           )}
@@ -197,13 +303,13 @@ export function FluxoDeCaixa() {
             </p>
           ) : saidas.length === 0 ? (
             <p className='text-[#5a6b7a] text-xs font-bold uppercase tracking-widest p-4 text-center border border-dashed border-[#273b4a] rounded-xl'>
-              Sem saídas neste mês
+              Sem saídas
             </p>
           ) : (
             saidas.map((t) => (
               <div
                 key={t.id}
-                className='bg-[#050e22] border border-red-500/30 p-3 rounded-xl flex justify-between items-center shadow-sm hover:border-red-500 transition-colors'
+                className='group bg-[#050e22] border border-red-500/30 p-3 rounded-xl flex justify-between items-center shadow-sm hover:border-red-500 transition-colors'
               >
                 <div className='flex flex-col'>
                   <span className='text-white text-sm font-bold'>
@@ -217,14 +323,96 @@ export function FluxoDeCaixa() {
                       : new Date(t.created_at).toLocaleDateString("pt-BR")}
                   </span>
                 </div>
-                <span className='text-red-500 font-black text-sm bg-red-500/10 px-2 py-1 rounded-md'>
-                  - R$ {Number(t.valor).toFixed(2)}
-                </span>
+                <div className='flex items-center gap-3'>
+                  <span className='text-red-500 font-black text-sm bg-red-500/10 px-2 py-1 rounded-md'>
+                    - R$ {Number(t.valor).toFixed(2)}
+                  </span>
+                  <div className='flex md:opacity-0 md:group-hover:opacity-100 transition-opacity gap-1'>
+                    <button
+                      onClick={() => abrirModalEdicao(t)}
+                      className='p-1.5 text-[#5a6b7a] hover:text-[#ca8aef] hover:bg-[#121a27] rounded'
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => deletarTransacao(t.id)}
+                      className='p-1.5 text-[#5a6b7a] hover:text-red-500 hover:bg-[#121a27] rounded'
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
               </div>
             ))
           )}
         </div>
       </div>
+
+      {/* MODAL DE EDIÇÃO */}
+      {transacaoEmEdicao && (
+        <div className='fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4'>
+          <div className='bg-[#050e22] border border-[#273b4a] rounded-2xl w-full max-w-md p-6 shadow-2xl relative'>
+            <button
+              onClick={() => setTransacaoEmEdicao(null)}
+              className='absolute top-4 right-4 text-[#5a6b7a] hover:text-white transition-colors'
+            >
+              <X size={20} />
+            </button>
+            <h3 className='text-xl font-black text-white uppercase tracking-tighter mb-4'>
+              Editar Transação
+            </h3>
+
+            <form onSubmit={salvarEdicao} className='flex flex-col gap-4'>
+              <div className='flex flex-col gap-1'>
+                <label className='text-[10px] text-[#a0aec0] font-black uppercase tracking-widest'>
+                  Razão / Descrição
+                </label>
+                <input
+                  type='text'
+                  value={editDescricao}
+                  onChange={(e) => setEditDescricao(e.target.value)}
+                  className='bg-[#121a27] border border-[#273b4a] text-white p-3 rounded-xl outline-none focus:border-[#ca8aef]'
+                  required
+                />
+              </div>
+
+              <div className='flex flex-col gap-1'>
+                <label className='text-[10px] text-[#a0aec0] font-black uppercase tracking-widest'>
+                  Valor (R$)
+                </label>
+                <input
+                  type='number'
+                  step='0.01'
+                  value={editValor}
+                  onChange={(e) => setEditValor(e.target.value)}
+                  className='bg-[#121a27] border border-[#273b4a] text-white p-3 rounded-xl outline-none focus:border-[#ca8aef]'
+                  required
+                />
+              </div>
+
+              <div className='flex flex-col gap-1'>
+                <label className='text-[10px] text-[#a0aec0] font-black uppercase tracking-widest'>
+                  Data Real (YYYY-MM-DD)
+                </label>
+                <input
+                  type='date'
+                  value={editData}
+                  onChange={(e) => setEditData(e.target.value)}
+                  className='bg-[#121a27] border border-[#273b4a] text-white p-3 rounded-xl outline-none focus:border-[#ca8aef] color-scheme-dark'
+                  required
+                />
+              </div>
+
+              <button
+                type='submit'
+                className='w-full bg-[#ca8aef] text-[#050e22] font-black py-4 rounded-xl uppercase tracking-widest mt-2 hover:scale-[1.02] transition-transform'
+              >
+                Salvar Alterações
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
