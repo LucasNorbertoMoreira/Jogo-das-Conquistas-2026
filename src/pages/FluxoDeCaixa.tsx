@@ -9,6 +9,7 @@ import {
   Pencil,
   Trash2,
   X,
+  Plus,
 } from "lucide-react";
 
 interface Transacao {
@@ -23,6 +24,7 @@ interface Transacao {
 export function FluxoDeCaixa() {
   const dataAtual = new Date();
   const mesAtualString = `${dataAtual.getFullYear()}-${String(dataAtual.getMonth() + 1).padStart(2, "0")}`;
+  const dataHojeString = dataAtual.toISOString().split("T")[0];
 
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +37,13 @@ export function FluxoDeCaixa() {
   const [editDescricao, setEditDescricao] = useState("");
   const [editValor, setEditValor] = useState("");
   const [editData, setEditData] = useState("");
+
+  // Estados do Modal de Criação
+  const [isCriando, setIsCriando] = useState(false);
+  const [novoTipo, setNovoTipo] = useState<"entrada" | "saida">("entrada");
+  const [novaDescricao, setNovaDescricao] = useState("");
+  const [novoValor, setNovoValor] = useState("");
+  const [novaData, setNovaData] = useState(dataHojeString);
 
   const carregarDados = async () => {
     setLoading(true);
@@ -81,7 +90,6 @@ export function FluxoDeCaixa() {
     carregarDados();
   }, [mesSelecionado]);
 
-  // Função Tática de Navegação de Meses
   const alterarMes = (direcao: "prev" | "next") => {
     const [ano, mes] = mesSelecionado.split("-");
     const data = new Date(Number(ano), Number(mes) - 1, 1);
@@ -92,7 +100,6 @@ export function FluxoDeCaixa() {
     );
   };
 
-  // Formatar nome do mês para o cabeçalho
   const obterNomeMesSelecionado = () => {
     const [ano, mes] = mesSelecionado.split("-");
     const data = new Date(Number(ano), Number(mes) - 1, 1);
@@ -101,7 +108,7 @@ export function FluxoDeCaixa() {
       .toUpperCase();
   };
 
-  // Funções de CRUD
+  // CRUD - Deletar
   const deletarTransacao = async (id: string) => {
     if (
       !window.confirm(
@@ -109,7 +116,6 @@ export function FluxoDeCaixa() {
       )
     )
       return;
-
     try {
       const { error } = await supabase
         .from("transacoes_financeiras")
@@ -123,11 +129,11 @@ export function FluxoDeCaixa() {
     }
   };
 
+  // CRUD - Editar
   const abrirModalEdicao = (t: Transacao) => {
     setTransacaoEmEdicao(t);
     setEditDescricao(t.descricao);
     setEditValor(t.valor.toString());
-    // Garante formato YYYY-MM-DD para o input type="date"
     const dataFormatada = t.date ? t.date : t.created_at.split("T")[0];
     setEditData(dataFormatada);
   };
@@ -135,7 +141,6 @@ export function FluxoDeCaixa() {
   const salvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!transacaoEmEdicao) return;
-
     try {
       const { error } = await supabase
         .from("transacoes_financeiras")
@@ -145,13 +150,44 @@ export function FluxoDeCaixa() {
           date: editData,
         })
         .eq("id", transacaoEmEdicao.id);
-
       if (error) throw error;
       setTransacaoEmEdicao(null);
       carregarDados();
     } catch (error) {
       console.error("Erro ao atualizar:", error);
       alert("Erro ao salvar alterações.");
+    }
+  };
+
+  // CRUD - Criar
+  const salvarNovaTransacao = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase.from("transacoes_financeiras").insert([
+        {
+          user_id: user.id,
+          tipo: novoTipo,
+          descricao: novaDescricao,
+          valor: parseFloat(novoValor),
+          date: novaData,
+        },
+      ]);
+
+      if (error) throw error;
+
+      setIsCriando(false);
+      setNovaDescricao("");
+      setNovoValor("");
+      setNovoTipo("entrada");
+      carregarDados();
+    } catch (error) {
+      console.error("Erro ao criar:", error);
+      alert("Erro ao registrar nova transação.");
     }
   };
 
@@ -173,7 +209,6 @@ export function FluxoDeCaixa() {
             Fluxo de Caixa
           </h2>
 
-          {/* NAVEGADOR DE MESES TÁTICO */}
           <div className='flex items-center gap-4 bg-[#121a27] border border-[#273b4a] rounded-lg p-1 w-max'>
             <button
               onClick={() => alterarMes("prev")}
@@ -193,15 +228,23 @@ export function FluxoDeCaixa() {
           </div>
         </div>
 
-        <button
-          onClick={carregarDados}
-          className='text-[#ca8aef] text-sm font-bold uppercase hover:underline'
-        >
-          Atualizar Dados
-        </button>
+        <div className='flex items-center gap-3'>
+          <button
+            onClick={carregarDados}
+            className='text-[#5a6b7a] text-xs font-bold uppercase hover:text-white transition-colors'
+          >
+            Atualizar
+          </button>
+          <button
+            onClick={() => setIsCriando(true)}
+            className='flex items-center gap-2 bg-[#ca8aef] text-[#050e22] text-xs font-black uppercase tracking-widest px-4 py-2 rounded-lg hover:scale-[1.02] transition-transform'
+          >
+            <Plus size={16} /> Novo Registro
+          </button>
+        </div>
       </div>
 
-      {/* DASHBOARD DE MÉTRICAS (Mantido igual) */}
+      {/* DASHBOARD DE MÉTRICAS */}
       <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
         <div className='bg-[#050e22] border border-[#273b4a] p-5 rounded-2xl shadow-xl flex flex-col justify-center items-center'>
           <span className='text-[10px] text-[#48a64b] font-black uppercase tracking-widest flex items-center gap-1 mb-2'>
@@ -348,6 +391,100 @@ export function FluxoDeCaixa() {
         </div>
       </div>
 
+      {/* MODAL DE CRIAÇÃO */}
+      {isCriando && (
+        <div className='fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4'>
+          <div className='bg-[#050e22] border border-[#273b4a] rounded-2xl w-full max-w-md p-6 shadow-2xl relative'>
+            <button
+              onClick={() => setIsCriando(false)}
+              className='absolute top-4 right-4 text-[#5a6b7a] hover:text-white transition-colors'
+            >
+              <X size={20} />
+            </button>
+            <h3 className='text-xl font-black text-white uppercase tracking-tighter mb-4'>
+              Novo Registro
+            </h3>
+
+            <form
+              onSubmit={salvarNovaTransacao}
+              className='flex flex-col gap-4'
+            >
+              <div className='flex flex-col gap-1'>
+                <label className='text-[10px] text-[#a0aec0] font-black uppercase tracking-widest'>
+                  Tipo de Transação
+                </label>
+                <div className='flex gap-2'>
+                  <button
+                    type='button'
+                    onClick={() => setNovoTipo("entrada")}
+                    className={`flex-1 py-3 rounded-xl text-sm font-black transition-all ${novoTipo === "entrada" ? "bg-[#48a64b]/20 border border-[#48a64b] text-[#48a64b]" : "bg-[#121a27] border border-[#273b4a] text-[#5a6b7a] hover:border-[#48a64b]/50"}`}
+                  >
+                    ENTRADA (+)
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => setNovoTipo("saida")}
+                    className={`flex-1 py-3 rounded-xl text-sm font-black transition-all ${novoTipo === "saida" ? "bg-red-500/20 border border-red-500 text-red-500" : "bg-[#121a27] border border-[#273b4a] text-[#5a6b7a] hover:border-red-500/50"}`}
+                  >
+                    SAÍDA (-)
+                  </button>
+                </div>
+              </div>
+
+              <div className='flex flex-col gap-1'>
+                <label className='text-[10px] text-[#a0aec0] font-black uppercase tracking-widest'>
+                  Razão / Descrição
+                </label>
+                <input
+                  type='text'
+                  value={novaDescricao}
+                  onChange={(e) => setNovaDescricao(e.target.value)}
+                  placeholder='Ex: Edição de vídeo'
+                  className='bg-[#121a27] border border-[#273b4a] text-white p-3 rounded-xl outline-none focus:border-[#ca8aef]'
+                  required
+                />
+              </div>
+
+              <div className='flex flex-col gap-1'>
+                <label className='text-[10px] text-[#a0aec0] font-black uppercase tracking-widest'>
+                  Valor (R$)
+                </label>
+                <input
+                  type='number'
+                  step='0.01'
+                  min='0.01'
+                  value={novoValor}
+                  onChange={(e) => setNovoValor(e.target.value)}
+                  placeholder='0.00'
+                  className='bg-[#121a27] border border-[#273b4a] text-white p-3 rounded-xl outline-none focus:border-[#ca8aef]'
+                  required
+                />
+              </div>
+
+              <div className='flex flex-col gap-1'>
+                <label className='text-[10px] text-[#a0aec0] font-black uppercase tracking-widest'>
+                  Data Real
+                </label>
+                <input
+                  type='date'
+                  value={novaData}
+                  onChange={(e) => setNovaData(e.target.value)}
+                  className='bg-[#121a27] border border-[#273b4a] text-white p-3 rounded-xl outline-none focus:border-[#ca8aef] color-scheme-dark'
+                  required
+                />
+              </div>
+
+              <button
+                type='submit'
+                className={`w-full font-black py-4 rounded-xl uppercase tracking-widest mt-2 hover:scale-[1.02] transition-transform text-[#050e22] ${novoTipo === "entrada" ? "bg-[#48a64b]" : "bg-red-500"}`}
+              >
+                Confirmar {novoTipo}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* MODAL DE EDIÇÃO */}
       {transacaoEmEdicao && (
         <div className='fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4'>
@@ -392,7 +529,7 @@ export function FluxoDeCaixa() {
 
               <div className='flex flex-col gap-1'>
                 <label className='text-[10px] text-[#a0aec0] font-black uppercase tracking-widest'>
-                  Data Real (YYYY-MM-DD)
+                  Data Real
                 </label>
                 <input
                   type='date'
