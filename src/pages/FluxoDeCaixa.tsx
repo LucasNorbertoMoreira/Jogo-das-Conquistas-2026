@@ -54,27 +54,20 @@ export function FluxoDeCaixa() {
       if (!user) return;
 
       const [ano, mes] = mesSelecionado.split("-");
-      const dataInicio = new Date(
-        Number(ano),
-        Number(mes) - 1,
-        1,
-      ).toISOString();
-      const dataFim = new Date(
-        Number(ano),
-        Number(mes),
-        0,
-        23,
-        59,
-        59,
-        999,
-      ).toISOString();
 
+      // 1. Gera strings limpas (YYYY-MM-DD) para comparar exatamente com a coluna 'date'
+      const dataInicio = `${ano}-${mes}-01`;
+      const ultimoDia = new Date(Number(ano), Number(mes), 0).getDate();
+      const dataFim = `${ano}-${mes}-${String(ultimoDia).padStart(2, "0")}`;
+
+      // 2. O filtro agora ataca a coluna 'date' em vez do 'created_at'
       const { data, error } = await supabase
         .from("transacoes_financeiras")
         .select("*")
         .eq("user_id", user.id)
-        .gte("created_at", dataInicio)
-        .lte("created_at", dataFim)
+        .gte("date", dataInicio) // CORREÇÃO AQUI
+        .lte("date", dataFim) // CORREÇÃO AQUI
+        .order("date", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
