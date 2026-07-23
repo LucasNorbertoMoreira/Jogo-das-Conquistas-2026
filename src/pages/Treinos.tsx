@@ -47,13 +47,18 @@ export function Treinos() {
 
   const verificarSessaoDeHoje = async () => {
     const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0); // Início do dia
+
+    // Monta a data no formato YYYY-MM-DD cravado no fuso local da sua operação
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+    const dia = String(hoje.getDate()).padStart(2, "0");
+    const dataLocal = `${ano}-${mes}-${dia}`;
 
     try {
       const { data, error } = await supabase
         .from("workout_sessions")
         .select("id, notes, started_at")
-        .gte("started_at", hoje.toISOString())
+        .gte("started_at", dataLocal) // Filtro livre das armadilhas do UTC
         .order("started_at", { ascending: false })
         .limit(1)
         .single();
