@@ -10,19 +10,21 @@ import {
   LogOut,
   Flame,
   Wallet,
+  Dumbbell, // Ícone adicionado para a aba de treinos
 } from "lucide-react";
 import { Historico } from "./pages/Historico";
 import { Missoes } from "./pages/Missoes";
 import { AuditorDiario } from "./features/hud/components/AuditorDiario";
 import { FluxoDeCaixa } from "./pages/FluxoDeCaixa";
+import { Treinos } from "./pages/Treinos"; // O Import do componente
 
 export default function App() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // 1. O ESTADO DO SWITCHER (Agora suportando o financeiro)
+  // 1. O ESTADO DO SWITCHER (Agora suportando os treinos)
   const [telaAtual, setTelaAtual] = useState<
-    "kanban" | "historico" | "missoes" | "financeiro"
+    "kanban" | "historico" | "missoes" | "financeiro" | "treinos"
   >("kanban");
 
   useEffect(() => {
@@ -76,6 +78,14 @@ export default function App() {
             <Flame size={22} />
           </button>
 
+          {/* NOVO: Botão de Treinos */}
+          <button
+            onClick={() => setTelaAtual("treinos")}
+            className={`p-3 rounded-xl transition-all group relative ${telaAtual === "treinos" ? "bg-[#ca8aef] text-white shadow-[0_0_15px_rgba(202,138,239,0.5)]" : "text-[#b7b7b7] hover:bg-[#273b4a] hover:text-white"}`}
+          >
+            <Dumbbell size={22} />
+          </button>
+
           <button
             onClick={() => setTelaAtual("historico")}
             className={`p-3 rounded-xl transition-all group relative ${telaAtual === "historico" ? "bg-[#ca8aef] text-white shadow-[0_0_15px_rgba(202,138,239,0.5)]" : "text-[#b7b7b7] hover:bg-[#273b4a] hover:text-white"}`}
@@ -83,7 +93,6 @@ export default function App() {
             <Trophy size={22} />
           </button>
 
-          {/* NOVO: Botão do Fluxo de Caixa */}
           <button
             onClick={() => setTelaAtual("financeiro")}
             className={`p-3 rounded-xl transition-all group relative ${telaAtual === "financeiro" ? "bg-[#48a64b] text-white shadow-[0_0_15px_rgba(72,166,75,0.5)]" : "text-[#b7b7b7] hover:bg-[#273b4a] hover:text-white"}`}
@@ -110,18 +119,22 @@ export default function App() {
       <main className='flex-grow relative p-4 md:p-10 overflow-y-auto overflow-x-hidden'>
         <AuditorDiario />
         <HudUsuario />
+
+        {/* CABEÇALHO DINÂMICO */}
         <header className='mb-8 md:mb-12'>
           <h1 className='text-3xl md:text-[3.2rem] font-bold mb-2 text-white leading-tight'>
             {telaAtual === "kanban" && "Minhas Metas"}
             {telaAtual === "missoes" && "Missões Diárias"}
             {telaAtual === "historico" && "Cofre de Conquistas"}
             {telaAtual === "financeiro" && "Fluxo de Caixa"}
+            {telaAtual === "treinos" && "Performance Física"}
           </h1>
           <p className='text-sm md:text-[1.6rem] text-[#a0aec0]'>
             {telaAtual === "kanban" && "Transforme sua disciplina em XP."}
             {telaAtual === "missoes" && "Sua ofensiva contra a estagnação."}
             {telaAtual === "historico" && "Auditoria de alta performance."}
             {telaAtual === "financeiro" && "Controle de recursos e liquidez."}
+            {telaAtual === "treinos" && "Métricas de sobrecarga progressiva."}
           </p>
         </header>
 
@@ -130,6 +143,7 @@ export default function App() {
         {telaAtual === "missoes" && <Missoes />}
         {telaAtual === "historico" && <Historico />}
         {telaAtual === "financeiro" && <FluxoDeCaixa />}
+        {telaAtual === "treinos" && <Treinos />}
       </main>
     </div>
   );

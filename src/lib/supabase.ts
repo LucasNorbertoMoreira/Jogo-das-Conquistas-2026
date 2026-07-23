@@ -1,13 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Agora ele busca do .env de forma segura
+// 1. CONEXÃO PRINCIPAL (Sistema, Auth, Financeiro)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "As chaves do Supabase não foram configuradas no arquivo .env",
-  );
-}
-
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// 2. CONEXÃO SECUNDÁRIA (Apenas Treinos)
+const supabaseTreinosUrl = import.meta.env.VITE_SUPABASE_TREINOS_URL;
+const supabaseTreinosKey = import.meta.env.VITE_SUPABASE_TREINOS_ANON_KEY;
+export const supabaseTreinos = createClient(
+  supabaseTreinosUrl,
+  supabaseTreinosKey,
+);
