@@ -1,10 +1,29 @@
+import { supabase } from "../lib/supabase";
+
+// 1. Esta função preenche a caixa de seleção ao abrir a tela
+const carregarExercicios = async () => {
+  try {
+    const { data, error } = await supabase
+      .from("exercises")
+      .select("id, name")
+      .order("name");
+
+    if (error) throw error;
+
+    // setExercicios(data); <-- Aqui você salva no state que alimenta o <select>
+  } catch (error) {
+    console.error("Erro ao carregar lista de exercícios:", error);
+  }
+};
+
+// 2. Esta função busca a performance (acionada ao trocar o exercício no select)
 const carregarHistorico = async () => {
+  // Trava de segurança: não faz requisição à toa se nada foi selecionado
+  if (!exercicioSelecionado) return;
+
   setLoading(true);
   try {
-    // A chamada supabase.auth.getUser() foi removida.
-    // Vamos buscar os dados diretamente usando o seletor.
-
-    const { data, error } = await supabaseTreinos
+    const { data, error } = await supabase
       .from("workout_sets")
       .select(
         `
@@ -48,7 +67,7 @@ const carregarHistorico = async () => {
       {} as Record<string, any>,
     );
 
-    // Formata e ordena...
+    // Formata e ordena
     const historicoFormatado = Object.values(agrupadoPorDia).map(
       (dia: any) => ({
         data: dia.data,
