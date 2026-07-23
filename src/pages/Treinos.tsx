@@ -7,7 +7,7 @@ import {
   TrendingDown,
   Minus,
 } from "lucide-react";
-import { LineChart, Line, ResponsiveContainer, Tooltip } from "recharts";
+import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 
 export function Treinos() {
   const [exercicios, setExercicios] = useState<any[]>([]);
@@ -179,6 +179,35 @@ export function Treinos() {
             </p>
             <ResponsiveContainer width='100%' height='100%'>
               <LineChart data={chartData}>
+                {/* Sparkline de Tendência */}
+                <div className='mb-8 h-24 bg-[#050e22] p-4 rounded-xl border border-[#273b4a]'>
+                  <p className='text-xs text-[#a0aec0] mb-2 uppercase font-bold tracking-wider'>
+                    Tendência de Volume (Últ. 10 Sessões)
+                  </p>
+                  <ResponsiveContainer width='100%' height='100%'>
+                    <LineChart data={chartData}>
+                      {/* A CORREÇÃO ENTRA AQUI: Define a data como título, mas esconde a linha */}
+                      <XAxis dataKey='data' hide={true} />
+
+                      <Line
+                        type='monotone'
+                        dataKey='volumeTotal'
+                        stroke='#ca8aef'
+                        strokeWidth={3}
+                        dot={{ r: 4, fill: "#ca8aef" }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#121a27",
+                          borderColor: "#273b4a",
+                          borderRadius: "8px",
+                          color: "#fff",
+                        }}
+                        itemStyle={{ color: "#ca8aef" }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
                 <Line
                   type='monotone'
                   dataKey='volumeTotal'
