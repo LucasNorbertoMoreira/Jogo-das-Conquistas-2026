@@ -302,23 +302,85 @@ export function Treinos() {
                 key={dia.data}
                 className='bg-[#050e22] rounded-xl border border-[#273b4a] overflow-hidden'
               >
-                {/* Header do Card (Mantido igual) */}
+                {/* Header do Card Restaurado */}
                 <div
-                  className='p-5 flex justify-between items-center cursor-pointer hover:bg-[#1a2536]'
+                  className='p-5 flex flex-col md:flex-row justify-between items-start md:items-center cursor-pointer hover:bg-[#1a2536] transition-colors gap-4'
                   onClick={() => toggleExpandir(dia.data)}
                 >
-                  {/* ... conteúdo do header igual ao anterior ... */}
                   <div>
-                    <p className='text-white font-bold text-lg'>{dia.data}</p>
-                    <span className='text-xs px-2 py-0.5 rounded-md bg-[#273b4a] text-[#a0aec0]'>
-                      Vol: {dia.volumeTotal} reps
-                    </span>
+                    <div className='flex items-center gap-2 mb-1'>
+                      <p className='text-white font-bold text-lg'>{dia.data}</p>
+                      <span className='text-xs px-2 py-0.5 rounded-md bg-[#273b4a] text-[#a0aec0]'>
+                        {dia.sets} séries • RPE {dia.rpeMedio}
+                      </span>
+                    </div>
+                    {/* Fator Delta Restaurado */}
+                    <div className='flex items-center gap-4 text-sm mt-2 md:mt-0'>
+                      <div className='flex items-center gap-1'>
+                        <span className='text-[#a0aec0]'>
+                          Vol:{" "}
+                          <strong className='text-white'>
+                            {dia.volumeTotal} reps
+                          </strong>
+                        </span>
+                        {dia.deltaVolume > 0 ? (
+                          <span className='text-green-400 flex items-center text-xs'>
+                            <TrendingUp size={12} className='mr-0.5' />+
+                            {dia.deltaVolume}
+                          </span>
+                        ) : dia.deltaVolume < 0 ? (
+                          <span className='text-red-400 flex items-center text-xs'>
+                            <TrendingDown size={12} className='mr-0.5' />
+                            {dia.deltaVolume}
+                          </span>
+                        ) : (
+                          <span className='text-[#a0aec0] flex items-center text-xs'>
+                            <Minus size={12} />
+                          </span>
+                        )}
+                      </div>
+
+                      {dia.cargaMaxima > 0 && (
+                        <div className='flex items-center gap-1'>
+                          <span className='text-[#a0aec0]'>
+                            Carga:{" "}
+                            <strong className='text-white'>
+                              {dia.cargaMaxima}kg
+                            </strong>
+                          </span>
+                          {dia.deltaCarga > 0 ? (
+                            <span className='text-green-400 flex items-center text-xs'>
+                              <TrendingUp size={12} className='mr-0.5' />+
+                              {dia.deltaCarga}
+                            </span>
+                          ) : dia.deltaCarga < 0 ? (
+                            <span className='text-red-400 flex items-center text-xs'>
+                              <TrendingDown size={12} className='mr-0.5' />
+                              {dia.deltaCarga}
+                            </span>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {sessoesExpandidas[dia.data] ? (
-                    <ChevronUp className='text-[#ca8aef]' />
-                  ) : (
-                    <ChevronDown className='text-[#a0aec0]' />
-                  )}
+
+                  <div className='flex items-center gap-4 w-full md:w-auto justify-between md:justify-end'>
+                    {dia.volumeLoad > 0 && (
+                      <div className='text-right'>
+                        <p className='text-[#ca8aef] font-black text-lg'>
+                          {dia.volumeLoad}kg
+                        </p>
+                        <p className='text-[10px] text-[#a0aec0] uppercase tracking-wider'>
+                          Volume Load Adicional
+                        </p>
+                      </div>
+                    )}
+                    {sessoesExpandidas[dia.data] ? (
+                      <ChevronUp className='text-[#ca8aef]' />
+                    ) : (
+                      <ChevronDown className='text-[#a0aec0]' />
+                    )}
+                  </div>
                 </div>
 
                 {/* Corpo do Card: Anatomia da Fadiga + CRUD */}
@@ -345,7 +407,7 @@ export function Treinos() {
                           <span
                             className={`text-sm px-2 py-1 rounded font-bold ${serie.rpe >= 9 ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400"}`}
                           >
-                            RPE {serie.rpe}
+                            RPE {serie.rpe || "-"}
                           </span>
 
                           {/* Ações Visíveis apenas no Hover da linha */}
