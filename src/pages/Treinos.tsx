@@ -48,7 +48,7 @@ export function Treinos() {
   const verificarSessaoDeHoje = async () => {
     const hoje = new Date();
 
-    // Monta a data no formato YYYY-MM-DD cravado no fuso local da sua operação
+    // Monta a data no formato YYYY-MM-DD
     const ano = hoje.getFullYear();
     const mes = String(hoje.getMonth() + 1).padStart(2, "0");
     const dia = String(hoje.getDate()).padStart(2, "0");
@@ -58,18 +58,19 @@ export function Treinos() {
       const { data, error } = await supabase
         .from("workout_sessions")
         .select("id, notes, started_at")
-        .gte("started_at", dataLocal) // Filtro livre das armadilhas do UTC
+        .gte("started_at", dataLocal)
         .order("started_at", { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1); // Sem o .single()
 
-      if (data) {
-        setSessaoHoje(data);
-        setNotasHoje(data.notes || "");
+      if (error) throw error;
+
+      // Se existir algum dado (mesmo que a máquina tenha duplicado), pega o primeiro
+      if (data && data.length > 0) {
+        setSessaoHoje(data[0]);
+        setNotasHoje(data[0].notes || "");
       }
-    } catch (error: any) {
-      if (error.code !== "PGRST116")
-        console.error("Erro ao buscar sessão de hoje:", error);
+    } catch (error) {
+      console.error("Erro ao buscar relatório de hoje:", error);
     }
   };
 
