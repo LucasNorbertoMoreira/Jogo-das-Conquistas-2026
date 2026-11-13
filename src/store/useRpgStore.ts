@@ -17,16 +17,21 @@ export const useRpgStore = create<RpgState>()(
       xpParaProximo: 500,
       addXp: (valor) =>
         set((state) => {
-          const novoXp = state.xpTotal + valor;
-          if (novoXp >= state.xpParaProximo) {
-            const nivelNovo = state.nivel + 1;
-            return {
-              xpTotal: novoXp - state.xpParaProximo,
-              nivel: nivelNovo,
-              xpParaProximo: nivelNovo * 500,
-            };
+          let novoXp = state.xpTotal + valor;
+          let novoNivel = state.nivel;
+          let novoXpParaProximo = state.xpParaProximo;
+
+          while (novoXp >= novoXpParaProximo) {
+            novoXp -= novoXpParaProximo;
+            novoNivel += 1;
+            novoXpParaProximo = novoNivel * 500;
           }
-          return { xpTotal: novoXp };
+
+          return {
+            xpTotal: novoXp,
+            nivel: novoNivel,
+            xpParaProximo: novoXpParaProximo,
+          };
         }),
       removeXp: (valor) =>
         set((state) => {

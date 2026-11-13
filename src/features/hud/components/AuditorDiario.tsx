@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { habitService } from "../../../services/habitService";
+import { supabase } from "../../../lib/supabase";
 import { useRpgStore } from "../../../store/useRpgStore";
-import { XCircle, ShieldAlert } from "lucide-react";
+import { XCircle, ShieldAlert, CheckCircle2 } from "lucide-react";
 
 export function AuditorDiario() {
   const [relatorio, setRelatorio] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [corrigindoId, setCorrigindoId] = useState<string | null>(null);
+  const addXp = useRpgStore((state) => state.addXp);
   const removeXp = useRpgStore((state) => state.removeXp);
 
   useEffect(() => {
@@ -18,10 +21,9 @@ export function AuditorDiario() {
     const hoje = new Date();
     const dataHoje = hoje.toISOString().split("T")[0];
     const ontem = new Date(hoje);
-    const diaDeOntem = ontem.getDay();
-
     ontem.setDate(ontem.getDate() - 1);
     const dataOntem = ontem.toISOString().split("T")[0];
+    const diaDeOntem = new Date(dataOntem + "T12:00:00").getDay();
 
     // 2. Verifica se a auditoria já rodou hoje
     const ultimaAuditoria = localStorage.getItem("@rpg_last_audit");
@@ -85,6 +87,7 @@ export function AuditorDiario() {
       // 5. Prepara o dossiê para jogar na tela
       setRelatorio({
         dataHoje,
+        dataOntem,
         concluidos,
         falhos,
         xpGanhoOntem,
@@ -95,6 +98,56 @@ export function AuditorDiario() {
       console.error("Erro na auditoria:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const corrigirHabitoOntem = async (habito: any) => {
+    if (!relatorio) return;
+    setCorrigindoId(habito.id);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Marca como concluído na data de ontem
+      await habitService.toggleHabito(
+        habito.id,
+        true,
+        user.id,
+        relatorio.dataOntem,
+      );
+
+      // Como o dano da auditoria ainda não foi descontado, apenas adicionamos o XP ganho que faltou ontem
+      addXp(habito.xp_ganho);
+
+      const novosFalhos = relatorio.falhos.filter(
+        (f: any) => f.id !== habito.id,
+      );
+      const novosConcluidos = [...relatorio.concluidos, habito];
+      const novoXpGanho = relatorio.xpGanhoOntem + habito.xp_ganho;
+      const novoDano = Math.max(
+        0,
+        relatorio.danoAplicado - habito.xp_penalidade,
+      );
+
+      if (novosFalhos.length === 0) {
+        localStorage.setItem("@rpg_last_audit", relatorio.dataHoje);
+        setRelatorio(null);
+      } else {
+        setRelatorio({
+          ...relatorio,
+          concluidos: novosConcluidos,
+          falhos: novosFalhos,
+          xpGanhoOntem: novoXpGanho,
+          danoAplicado: novoDano,
+          saldo: novoXpGanho - novoDano,
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao corrigir hábito na auditoria:", error);
+    } finally {
+      setCorrigindoId(null);
     }
   };
 
@@ -169,18 +222,29 @@ export function AuditorDiario() {
             <h3 className='text-red-500 text-xs font-black uppercase tracking-widest mb-3 flex items-center gap-2'>
               <XCircle size={14} /> Missões Abandonadas
             </h3>
-            <div className='flex flex-col gap-2'>
+            <div className='flex flex-col gap-2 max-h-60 overflow-y-auto pr-1'>
               {relatorio.falhos.map((f: any) => (
                 <div
                   key={f.id}
-                  className='flex justify-between bg-red-950/20 border border-red-900/30 p-3 rounded-lg'
+                  className='flex justify-between items-center bg-red-950/20 border border-red-900/30 p-3 rounded-lg gap-3'
                 >
-                  <span className='text-white/80 text-sm font-bold'>
-                    {f.nome}
-                  </span>
-                  <span className='text-red-500 text-sm font-black'>
-                    -{f.xp_penalidade} HP
-                  </span>
+                  <div className='flex flex-col'>
+                    <span className='text-white/90 text-sm font-bold'>
+                      {f.nome}
+                    </span>
+                    <span className='text-red-500 text-xs font-black'>
+                      -{f.xp_penalidade} HP (ou +{f.xp_ganho} XP se concluído)
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => corrigirHabitoOntem(f)}
+                    disabled={corrigindoId === f.id}
+                    className='flex items-center gap-1.5 bg-[#48a64b]/20 hover:bg-[#48a64b] text-[#48a64b] hover:text-white border border-[#48a64b]/40 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all shrink-0 disabled:opacity-50'
+                    title='Marcar que este hábito foi cumprido ontem'
+                  >
+                    <CheckCircle2 size={14} />
+                    {corrigindoId === f.id ? "Salvando..." : "Eu Cumpri"}
+                  </button>
                 </div>
               ))}
             </div>

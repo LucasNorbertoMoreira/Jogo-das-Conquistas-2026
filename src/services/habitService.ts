@@ -29,16 +29,21 @@ export const habitService = {
     return data;
   },
 
-  // FUNÇÃO REESCRITA: CIRÚRGICA E INFALÍVEL
-  async toggleHabito(habitoId: string, concluido: boolean, userId: string) {
-    const hoje = new Date().toISOString().split("T")[0];
+  // FUNÇÃO REESCRITA: CIRÚRGICA E INFALÍVEL (Suporta data customizada para correção retroativa)
+  async toggleHabito(
+    habitoId: string,
+    concluido: boolean,
+    userId: string,
+    dataCustom?: string,
+  ) {
+    const dataAlvo = dataCustom || new Date().toISOString().split("T")[0];
 
-    // 1. Verifica se o usuário já clicou neste hábito hoje
+    // 1. Verifica se o usuário já clicou neste hábito na data alvo
     const { data: existente, error: erroBusca } = await supabase
       .from("registros_habitos")
       .select("id")
       .eq("habito_id", habitoId)
-      .eq("data", hoje)
+      .eq("data", dataAlvo)
       .maybeSingle(); // Retorna 1 registro ou nulo, sem dar erro
 
     if (erroBusca) throw erroBusca;
@@ -60,7 +65,7 @@ export const habitService = {
           {
             habito_id: habitoId,
             user_id: userId,
-            data: hoje,
+            data: dataAlvo,
             concluido,
           },
         ])
